@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Insurance Claims Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{--bg:#f3f5f9;--card:#fff;--text:#1b2433;--muted:#6a7588;--line:#e2e7ef;--brand:#12355b;--accent:#2f6fed;--open:#e8912d;--inhouse:#2f6fed;--closed:#2e9e6b;--bar:#2f6fed;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e141f;--card:#172030;--text:#e8edf6;--muted:#97a3b8;--line:#263249;--brand:#0b1a2e;--accent:#6c9bff;--bar:#6c9bff}}
+:root[data-theme="dark"]{--bg:#0e141f;--card:#172030;--text:#e8edf6;--muted:#97a3b8;--line:#263249;--brand:#0b1a2e;--accent:#6c9bff;--bar:#6c9bff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{background:var(--brand);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+header h1{font-size:18px;margin:0;font-weight:600}
+header small{opacity:.75;display:block;font-weight:400}
+nav{display:flex;gap:6px}
+nav button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35);padding:7px 14px;border-radius:6px;cursor:pointer;font:inherit}
+nav button.on{background:#fff;color:var(--brand);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.up{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.btn{background:var(--accent);color:#fff;border:0;padding:9px 16px;border-radius:6px;cursor:pointer;font:inherit;font-weight:600}
+#fname{color:var(--muted);font-size:13px}
+#err{display:none;background:#fdecec;color:#9b1c1c;border:1px solid #f3b4b4;border-radius:8px;padding:12px 14px;margin-top:12px}
+#empty{text-align:center;color:var(--muted);padding:50px 10px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.filters label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+select{width:100%;padding:7px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.kpi{border-left:5px solid var(--c)}
+.kpi .l{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+.bd{display:inline-block;background:var(--brand);color:#fff;border-radius:50%;width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;margin-right:6px;text-transform:none;letter-spacing:0}table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap}th{background:var(--bg);color:var(--muted);position:sticky;top:0}.kpi .n{font-size:34px;font-weight:700;line-height:1.15}
+.kpi .p{color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.grid{grid-template-columns:1fr 1.3fr}}
+h2{font-size:16px;margin:0 0 12px}
+.row{display:grid;grid-template-columns:minmax(90px,170px) 1fr auto;gap:10px;align-items:center;margin:8px 0}
+.row .name{font-size:13px;overflow-wrap:anywhere}
+.track{background:var(--bg);border-radius:4px;height:22px;overflow:hidden}
+.fill{height:100%;background:var(--c,var(--bar));border-radius:4px;transition:width .4s}
+.row .v{font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+#openTbl{table-layout:fixed;width:100%}#openTbl th,#openTbl td{white-space:normal;overflow-wrap:anywhere;vertical-align:middle;text-align:center;border:1px dotted var(--muted)}#openTbl td:last-child{color:#e02424}#openTbl th{position:static}
+@media(max-width:520px){#openTbl{font-size:11px}#openTbl th,#openTbl td{padding:4px}}
+@page{size:landscape;margin:10mm}
+@media print{header,.up,.filters,#err,#empty{display:none!important}body{background:#fff}main{padding:0;max-width:none}.card{border:0;padding:0}#openTbl{font-size:11px}#openTbl thead{display:table-header-group}#openTbl tr{page-break-inside:avoid}}
+.hide{display:none}
+@media(max-width:520px){.row{grid-template-columns:1fr auto}.row .track{grid-column:1/-1;order:3}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Insurance Claims Dashboard<small>Upload a CSV to generate the report</small></h1>
+  <nav><button class="on" data-p="1">Page 1 · Overview</button><button data-p="2">Page 2 · Open Claims</button></nav>
+</header>
+<main>
+  <div class="card up">
+    <div><input type="file" id="file" accept=".csv,text/csv" hidden><button class="btn" id="pick">Upload CSV</button> <span id="fname">No file loaded</span></div>
+    <div class="note" style="margin:0">Required columns: 10 (validated on upload)</div>
+  </div>
+  <div id="err"></div>
+  <div id="empty" class="card" style="margin-top:14px">Upload a claims CSV to see the dashboard.</div>
+
+  <div id="dash" class="hide">
+    <div class="filters" id="filters"></div>
+    <section id="p1">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid">
+        <div class="card"><h2>Drivers with 2 or More At-Fault Entries</h2><div id="faultBars"></div></div>
+        <div class="card"><h2>Damage Classification</h2><div id="dmgBars"></div></div>
+      </div>
+      <div class="note" id="note"></div>
+    </section>
+    <section id="p2" class="hide"><div class="card"><h2>Open Claims <span id="openCt" class="note"></span></h2><table id="openTbl"></table></div></section>
+  </div>
+</main>
+<script>
+const REQUIRED=["DL Plate No","Age Class","Function","Damage Classification","Liability","Driver Name","Agency","Notice Of Claim Email Subject","Completion","Final Claim Status"];
+const FILTERS=["Agency","Liability","Age Class","Function"];
+const STATUS=[["Open","var(--open)"],["Inhouse Repair","var(--inhouse)"],["Closed","var(--closed)"]];
+const kind=v=>{const s=String(v||"").toLowerCase().replace(/[^a-z]/g,"");return {open:"Open",closed:"Closed",close:"Closed",inhouse:"Inhouse Repair",inhouserepair:"Inhouse Repair",inhouserepairs:"Inhouse Repair"}[s]||null};
+const cls=r=>kind(r["Completion"]);
+const norm=s=>String(s||"").replace(/^\uFEFF/,"").trim().replace(/\s+/g," ").toLowerCase();
+const $=id=>document.getElementById(id);
+let ALL=[],SEL={};
+
+$("pick").onclick=()=>$("file").click();
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));
+  $("p1").classList.toggle("hide",b.dataset.p!=="1");$("p2").classList.toggle("hide",b.dataset.p!=="2");
+});
+$("file").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  Papa.parse(f,{header:true,skipEmptyLines:"greedy",complete:r=>load(r,f.name),error:x=>showErr("Could not read the file: "+x.message)});
+  e.target.value="";
+};
+function showErr(m){const e=$("err");e.style.display="block";e.textContent=m}
+function load(r,name){
+  $("err").style.display="none";
+  const hdrs=r.meta.fields||[];
+  const map={}; hdrs.forEach(h=>{if(!(norm(h) in map))map[norm(h)]=h});
+  const missing=REQUIRED.filter(c=>!(norm(c) in map));
+  if(missing.length){showErr("Upload rejected. Missing required column"+(missing.length>1?"s":"")+": "+missing.join(", ")+". Please check the CSV headers and try again.");return}
+  ALL=r.data.map(o=>{const x={};REQUIRED.forEach(c=>x[c]=String(o[map[norm(c)]]??"").replace(/[\s\u00a0]+/g," ").trim());return x});
+  const key=(c,v)=>{let k=v.toLowerCase().replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();if(c==="Agency")k=k.replace(/\s(incorporated|corporation|corp|inc|company|co|ltd|llc)$/,"");return k.replace(/\s/g,"")};
+  FILTERS.concat(["Driver Name","Damage Classification"]).forEach(c=>{const f={};ALL.forEach(x=>{const k=key(c,x[c]),m=f[k]=f[k]||{};m[x[c]]=(m[x[c]]||0)+1});const best={};for(const k in f)best[k]=Object.entries(f[k]).sort((a,b)=>b[1]-a[1])[0][0];ALL.forEach(x=>{x[c]=best[key(c,x[c])]})});
+  if(!ALL.length){showErr("The CSV has the required columns but no data rows.");return}
+  $("fname").textContent=name+" · "+ALL.length+" rows read"+(r.errors.length?" · "+r.errors.length+" parse warning(s) at file line "+r.errors.slice(0,5).map(e=>e.row+2).join(", "):"");
+  $("empty").classList.add("hide");$("dash").classList.remove("hide");
+  SEL={};buildFilters();render();
+}
+function buildFilters(){
+  const box=$("filters");box.innerHTML="";
+  FILTERS.forEach(c=>{
+    const vals=[...new Set(ALL.map(r=>r[c]||"(blank)"))].sort((a,b)=>a.localeCompare(b));
+    const d=document.createElement("div");
+    d.innerHTML=`<label>${c}</label><select><option value="">All</option>${vals.map(v=>`<option value="${esc(v)}">${esc(v)} (${ALL.filter(r=>(r[c]||"(blank)")===v).length})</option>`).join("")}</select>`;
+    d.querySelector("select").onchange=e=>{SEL[c]=e.target.value;render()};
+    box.appendChild(d);
+  });
+}
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=(n,t)=>t?(n/t*100).toFixed(1)+"%":"0.0%";
+function filtered(){return ALL.filter(r=>FILTERS.every(c=>!SEL[c]||(r[c]||"(blank)")===SEL[c]))}
+function bars(el,items,total,colorOf){
+  const max=Math.max(1,...items.map(i=>i[1]));
+  el.innerHTML=items.length?items.map(([k,n])=>`<div class="row" style="--c:${colorOf?colorOf(k):"var(--bar)"}"><div class="name">${esc(k)}</div><div class="track"><div class="fill" style="width:${n/max*100}%"></div></div><div class="v"><b>${n}</b> · ${pct(n,total)}</div></div>`).join(""):'<div class="note">No data for current filters.</div>';
+}
+function renderOpen(rows){
+  const o=rows.filter(r=>cls(r)==="Open");
+  $("openCt").textContent="· "+o.length+" claim(s)";
+  const P2=["DL Plate No","Damage Classification","Driver Name","Notice Of Claim Email Subject","Final Claim Status"],W=[14,18,18,30,20];
+  $("openTbl").innerHTML="<colgroup><col style='width:4%'>"+W.map(w=>"<col style='width:"+w*0.96+"%'>").join("")+"</colgroup><thead><tr><th>#</th>"+P2.map(c=>"<th>"+c+"</th>").join("")+"</tr></thead><tbody>"+(o.length?o.map((r,i)=>"<tr><td>"+(i+1)+"</td>"+P2.map(c=>"<td>"+esc(r[c])+"</td>").join("")+"</tr>").join(""):'<tr><td colspan="6">No open claims for current filters.</td></tr>')+"</tbody>";
+}
+function render(){
+  const rows=filtered(),T=rows.length;
+  const cnt={},un={};rows.forEach(r=>{const c=cls(r);if(c)cnt[c.toLowerCase()]=(cnt[c.toLowerCase()]||0)+1;else{const v=r["Completion"]||"(blank)";un[v]=(un[v]||0)+1}});
+  const get=n=>cnt[n.toLowerCase()]||0;
+  const known=STATUS.reduce((a,[n])=>a+get(n),0);
+  $("kpis").innerHTML=[["Total Claims",T,"var(--brand)"],...STATUS.map(([n,c])=>[n+" Claims",get(n),c])]
+    .map(([l,n,c],i)=>`<div class="card kpi" style="--c:${c}"><div class="l"><span class="bd">${i+1}</span>${l}</div><div class="n">${n.toLocaleString()}</div><div class="p">${pct(n,T)} of total claims</div></div>`).join("");
+  const f={};rows.forEach(r=>{const l=r["Liability"].toLowerCase(),k=r["Driver Name"].trim();if(k&&/at[\s-]*fault/.test(l)&&!/\bnot\b|non|\bno\b/.test(l)){const q=k.toLowerCase();(f[q]=f[q]||[k,0])[1]++}});
+  bars($("faultBars"),Object.values(f).filter(x=>x[1]>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])),T);
+  const d={};rows.forEach(r=>{const k=r["Damage Classification"]||"(blank)";d[k]=(d[k]||0)+1});
+  bars($("dmgBars"),Object.entries(d).sort((a,b)=>b[1]-a[1]),T);
+  renderOpen(rows);
+  const uk=Object.entries(un);$("note").textContent=uk.length?"Other Completion values (counted in Total Claims only): "+uk.map(([v,n])=>v+" ("+n+")").join(", "):"";
+}
+</script>
+</body>
+</html>
